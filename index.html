@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ترقمي - تصويت أفكار التطبيقات</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+        
+        :root {
+            --primary-color: #000000;
+            --bg-color: #f9f9f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header img {
+            max-width: 200px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-weight: 900;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            color: #666;
+        }
+
+        .counter-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .ideas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .idea-card {
+            background: var(--card-bg);
+            border: 2px solid #eee;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .idea-card:hover {
+            border-color: #ccc;
+            transform: translateY(-5px);
+        }
+
+        .idea-card.selected {
+            border-color: var(--primary-color);
+            background-color: #fafafa;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .idea-card h3 {
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            font-size: 1.2em;
+        }
+
+        .idea-card p {
+            font-size: 0.95em;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        /* Hide the actual checkbox */
+        .idea-card input[type="checkbox"] {
+            display: none;
+        }
+
+        .submit-container {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .submit-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background-color: #333;
+        }
+
+        .submit-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="793037.jpg" alt="Tarqumi Logo">
+        <h1>شاركنا رأيك في مشاريعنا القادمة</h1>
+        <p>اختار أكتر 4 أفكار تطبيقات شايف إنها هتعمل ضجة ومحتاجينها فعلًا.</p>
+        <div class="counter-badge" id="counter">تم اختيار: 0 / 4</div>
+    </div>
+
+    <form id="votingForm">
+        <div class="ideas-grid" id="ideasGrid">
+            </div>
+
+        <div class="submit-container">
+            <button type="submit" id="submitBtn" class="submit-btn" disabled>إرسال اختياراتي</button>
+            <div id="message"></div>
+        </div>
+    </form>
+
+    <script>
+        // رابط جوجل سكريبت اللي طلعلك في الخطوة الأولى
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMaXlBGkOC-UO2vEkE_8G2zUWAwVnVuPgfNSSc0TVpx0JyRl1b_kW0lwY_rV2hYBk/exec'; 
+
+        const ideas = [
+            { title: "صراحة بس بالصوت", desc: "رسايل مجهولة بالصوت مع فلاتر لتغيير الصوت عشان الغموض والكوميديا." },
+            { title: "عجلة الحظ للخروجات", desc: "عجلة بتلفها تختارلك هتروح فين وتعمل إيه مع صحابك عشان تنهي حيرة كل خروجة." },
+            { title: "تحدي الصحاب", desc: "تحديات يومية بين الشلة (جيم، دايت، مذاكرة) بنظام نقط واللي يخسر يتعاقب." },
+            { title: "هاتلي معاك", desc: "خدمات بسيطة بين الناس في نفس المكان (زي الجامعة أو الكومباوند) لطلب حاجات خفيفة." },
+            { title: "AI Roast / Hype", desc: "بترفع صورتك أو بروفايلك والذكاء الاصطناعي يتريق عليك أو يمدحك بطريقة مضحكة." },
+            { title: "مين شبهك؟", desc: "تطبيق بيقارن ملامحك بممثلين أو شخصيات أنمي باستخدام الذكاء الاصطناعي." },
+            { title: "لو كنت مكانه", desc: "سيناريوهات ومواقف افتراضية بتنزل والناس بتصوت وتتناقش في أحسن تصرف." },
+            { title: "فضفضة", desc: "غرف صوتية ونصية مجهولة للفضفضة عن المشاكل بدون الكشف عن الهوية." },
+            { title: "اتقفشت", desc: "تصور صاحبك فجأة والـ AI يحولها لـ ميم أو كوميك تلقائي بـ كابشن مضحك." },
+            { title: "مين فاضي؟", desc: "بيعرفك مين من صحابك أو دفعتك في نفس المكان وفاضي دلوقتي لخروجة." },
+            { title: "زنقة آخر الشهر", desc: "بيقترحلك أكل وخروجات رخيصة جداً وتقسيم فلوس ومناسب للطلاب." },
+            { title: "ذاكر معايا", desc: "غرف مذاكرة لايف بتقنية بومودورو مع ناس تانية عشان تشجعوا بعض." },
+            { title: "حول كلامك لمسلسل", desc: "بتكتب موقف حصلك والـ AI بيحوله لمشهد درامي أو أنمي أو وثائقي." },
+            { title: "AI صاحبك", desc: "صديق افتراضي بشخصيات مختلفة (جدع، توكسيك) بيتكلم معاك باللهجة المصرية." },
+            { title: "حاسبني", desc: "تقسيم المصاريف والفواتير وطلبات الأكل بين الشلة بواجهة شبابية سريعة." },
+            { title: "ماذا لو؟", desc: "سؤال يومي افتراضي (ماذا لو اختفى الإنترنت؟) للنقاش بين المجتمع." },
+            { title: "سعره كام؟", desc: "تصور أي حاجة (عربية، لابتوب، أكل) والـ AI يتوقع سعرها في مصر." },
+            { title: "الدنيا زحمة؟", desc: "خريطة تفاعلية الناس بتعمل فيها Check-in عشان يقولوا المكان زحمة أو فيه كمين." },
+            { title: "إيه الأكلة؟", desc: "بيقترحلك أكلات عشوائية على حسب ميزانيتك أو الحاجات المتاحة في تلاجة البيت." },
+            { title: "لو الناس كانت صريحة", desc: "الـ AI بيولد ردود فعل صريحة وصادمة لمواقف مجتمعية معتادة." },
+            { title: "اعترف", desc: "اعترافات مجهولة متقسمة على حسب اسم الجامعة أو اسم المدينة بتاعتك." },
+            { title: "مين يعرفني أكتر؟", desc: "بتعمل كويز صغير عن نفسك وتبعته لصحابك تشوف مين هيجاوب صح." }
+        ];
+
+        const grid = document.getElementById('ideasGrid');
+        const counterText = document.getElementById('counter');
+        const submitBtn = document.getElementById('submitBtn');
+        let selectedCount = 0;
+
+        // Render Ideas
+        ideas.forEach((idea, index) => {
+            const card = document.createElement('label');
+            card.className = 'idea-card';
+            card.innerHTML = `
+                <input type="checkbox" name="idea" value="${idea.title}">
+                <h3>${index + 1}. ${idea.title}</h3>
+                <p>${idea.desc}</p>
+            `;
+            grid.appendChild(card);
+
+            const checkbox = card.querySelector('input');
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    if (selectedCount >= 4) {
+                        this.checked = false; // Prevent checking more than 4
+                        alert('لقد قمت باختيار 4 أفكار بالفعل!');
+                        return;
+                    }
+                    selectedCount++;
+                    card.classList.add('selected');
+                } else {
+                    selectedCount--;
+                    card.classList.remove('selected');
+                }
+                updateCounter();
+            });
+        });
+
+        function updateCounter() {
+            counterText.innerText = `تم اختيار: ${selectedCount} / 4`;
+            // Enable submit only if exactly 4 are selected
+            if (selectedCount === 4) {
+                submitBtn.disabled = false;
+                counterText.style.background = '#28a745'; // Green when complete
+            } else {
+                submitBtn.disabled = true;
+                counterText.style.background = 'var(--primary-color)';
+            }
+        }
+
+        // Form Submit
+        document.getElementById('votingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (selectedCount !== 4) return;
+
+            const checkboxes = document.querySelectorAll('input[name="idea"]:checked');
+            let selectedValues = [];
+            checkboxes.forEach(cb => selectedValues.push(cb.value));
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'جاري الإرسال...';
+
+            const formData = new URLSearchParams();
+            formData.append('ideas', selectedValues.join(' | '));
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                body: formData,
+                mode: 'no-cors' // Important to avoid CORS issues with Apps Script
+            }).then(() => {
+                document.getElementById('message').innerText = 'تم إرسال اختياراتك بنجاح! شكراً لمشاركتك.';
+                document.getElementById('message').style.display = 'block';
+                document.getElementById('message').style.color = '#28a745';
+                submitBtn.innerText = 'تم الإرسال';
+            }).catch(error => {
+                document.getElementById('message').innerText = 'حدث خطأ أثناء الإرسال.';
+                document.getElementById('message').style.display = 'block';
+                document.getElementById('message').style.color = 'red';
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'حاول مرة أخرى';
+            });
+        });
+    </script>
+</body>
+</html>
